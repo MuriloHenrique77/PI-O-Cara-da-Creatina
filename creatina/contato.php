@@ -192,9 +192,89 @@ include "template/header.php";
     </form>
 </main>
 
-<!-- Rodapé -->
-<?php include "template/footer.php"; ?>
+
+<!-- MODAL CARRINHO -->
+<div class="modal fade" id="carrinhoModal" tabindex="-1" aria-labelledby="carrinhoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-dark text-white border-white">
+      <div class="modal-header">
+        <h5 class="modal-title" id="carrinhoModalLabel">Seu Carrinho</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <?php if (!empty($_SESSION['carrinho'])): ?>
+          <?php $total = 0; ?>
+          <ul class="list-group list-group-flush">
+            <?php foreach ($_SESSION['carrinho'] as $item): 
+              $total += $item['preco'];
+            ?>
+              <li class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center">
+                <div>
+                  <?= htmlspecialchars($item['nome']); ?><br>
+                  <small class="text-success">R$ <?= number_format($item['preco'], 2, ',', '.'); ?></small>
+                </div>
+                <button class="btn btn-sm btn-danger remover-item" data-id="<?= $item['id']; ?>" title="Remover">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+              </li>
+            <?php endforeach; ?>
+
+            <!-- TOTAL -->
+            <li class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center fw-bold border-top mt-3 pt-2">
+              Total
+              <span>R$ <?= number_format($total, 2, ',', '.'); ?></span>
+            </li>
+          </ul>
+        <?php else: ?>
+          <p class="text-center">Ainda não há produtos no carrinho.</p>
+        <?php endif; ?>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <a href="finalizar.php" class="btn btn-danger">Finalizar Compra</a>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('.remover-item').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const id = this.getAttribute('data-id');
+    const itemElement = this.closest('li');
+    const precoText = itemElement.querySelector('small').innerText;
+    const precoValor = parseFloat(precoText.replace('R$', '').replace('.', '').replace(',', '.'));
+
+    fetch('remove_item.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'id=' + encodeURIComponent(id)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        // Remove o item da lista
+        itemElement.remove();
+
+        // Atualiza o total
+        const totalSpan = document.querySelector('.modal-body .fw-bold span');
+        if (totalSpan) {
+          let totalAtual = parseFloat(totalSpan.innerText.replace('R$', '').replace('.', '').replace(',', '.'));
+          let novoTotal = totalAtual - precoValor;
+          if (novoTotal < 0) novoTotal = 0;
+          totalSpan.innerText = 'R$ ' + novoTotal.toFixed(2).replace('.', ',');
+        }
+
+        // Se não houver mais itens, mostrar mensagem
+        const lista = document.querySelector('.modal-body ul');
+        if (lista && lista.children.length <= 1) {
+          document.querySelector('.modal-body').innerHTML = '<p class="text-center">Ainda não há produtos no carrinho.</p>';
+        }
+      }
+    });
+  });
+});
+</script>
 </body>
-</html>
+</html
